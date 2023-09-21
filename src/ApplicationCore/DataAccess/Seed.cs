@@ -15,9 +15,16 @@ public static class SeedData
 	public static async Task EnsureSeedData(IServiceProvider serviceProvider, ConfigurationManager Configuration)
    {
 		string adminEmail = Configuration[$"{SettingsKeys.Admin}:Email"] ?? "";
-      if(String.IsNullOrEmpty(adminEmail))
+		string adminPhone = Configuration[$"{SettingsKeys.Admin}:Phone"] ?? "";
+		string adminName = Configuration[$"{SettingsKeys.Admin}:Name"] ?? "";
+
+      if(String.IsNullOrEmpty(adminEmail) || String.IsNullOrEmpty(adminPhone))
       {
-         throw new Exception("Failed to SeedData. Empty AdminEmail.");
+         throw new Exception("Failed to SeedData. Empty Admin Email/Phone.");
+      }
+		if(String.IsNullOrEmpty(adminName))
+      {
+         throw new Exception("Failed to SeedData. Empty Admin Name.");
       }
 		
 		Console.WriteLine("Seeding database...");
@@ -31,7 +38,16 @@ public static class SeedData
 		if(!String.IsNullOrEmpty(adminEmail)) {
 			using (var userManager = serviceProvider.GetRequiredService<UserManager<User>>())
 			{
-				await CreateUserIfNotExist(userManager, adminEmail, new List<string>() { DevRoleName });
+				var user = new User
+				{
+					Email = adminEmail,			
+					UserName = adminEmail,
+					Name = adminName,
+					PhoneNumber = adminPhone,
+					EmailConfirmed = true,
+					SecurityStamp = Guid.NewGuid().ToString()
+				};
+				await CreateUserIfNotExist(userManager, user, new List<string>() { DevRoleName });
 			}
 		}
 		
@@ -50,38 +66,24 @@ public static class SeedData
 		if (role == null) await roleManager.CreateAsync(new IdentityRole { Name = roleName });
 	}
 	
-	static async Task CreateUserIfNotExist(UserManager<User> userManager, string email, IList<string>? roles = null)
+	static async Task CreateUserIfNotExist(UserManager<User> userManager, User newUser, IList<string>? roles = null)
 	{
-		var user = await userManager.FindByEmailAsync(email);
+		var user = await userManager.FindByEmailAsync(newUser.Email!);
 		if (user == null)
 		{
-			bool isAdmin = false;
-			if (roles!.HasItems())
-			{
-				isAdmin = roles!.Select(r => r.EqualTo(DevRoleName) || r.EqualTo(BossRoleName)).FirstOrDefault();
-			}
-
-			var newUser = new User
-			{
-				Email = email,			
-				UserName = email,
-				EmailConfirmed = isAdmin,
-				SecurityStamp = Guid.NewGuid().ToString()
-			};
-
-
 			var result = await userManager.CreateAsync(newUser);
 
-			if (!roles.IsNullOrEmpty())
+			if (roles!.HasItems())
 			{
 				await userManager.AddToRolesAsync(newUser, roles!);
 			}
-
-
 		}
 		else
 		{
-			if (!roles.IsNullOrEmpty())
+			user.PhoneNumber = newUser.PhoneNumber;
+			user.Name = newUser.Name;
+			await userManager.UpdateAsync(user);
+			if (roles!.HasItems())
 			{
 				foreach (var role in roles!)
 				{

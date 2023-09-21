@@ -4,8 +4,9 @@ using ApplicationCore.Views;
 using ApplicationCore.Models;
 using ApplicationCore.Auth;
 using ApplicationCore.Services;
+using Microsoft.Extensions.Options;
+using ApplicationCore.Settings;
 using ApplicationCore.Authorization;
-
 
 namespace Web.Controllers;
 
@@ -13,34 +14,39 @@ public class AuthController : BaseController
 {
 	private readonly IUsersService _usersService;
 	private readonly IAuthService _authService;
+	private readonly AdminSettings _adminSettings;
 
 
-	public AuthController(IUsersService usersService, IAuthService authService)
+	public AuthController(IOptions<AdminSettings> adminSettings,IUsersService usersService, IAuthService authService)
 	{
+		_adminSettings = adminSettings.Value;
 		_usersService = usersService;
 		_authService = authService;
 	}
 
 	[HttpPost("")]
-	public async Task<ActionResult> Login([FromBody] LoginRequest model)
+	public async Task<ActionResult> Login([FromBody] OAuthLoginRequest model)
 	{
-		if (!ModelState.IsValid) return BadRequest(ModelState);
+		var user = _usersService.FindUserByPhone(model.Token);
 
-		var user = await _usersService.FindByEmailAsync(model.Username);
-		if (user != null)
+		if (user == null)
 		{
-			if (await _usersService.CheckPasswordAsync(user, model.Password))
-			{
-				var roles = await _usersService.GetRolesAsync(user);
-				var responseView = await _authService.CreateTokenAsync(RemoteIpAddress, user, roles);
-
-				return Ok(responseView);
-			}
+			ModelState.AddModelError("auth", "登入失敗.");
+			return BadRequest(ModelState);
 		}
 
-		ModelState.AddModelError("", "身分驗證失敗. 請重新登入");
-		return BadRequest(ModelState);
+		if (user.Email == _adminSettings.Email)
+		{
+			ModelState.AddModelError("auth", "登入失敗.");
+			return BadRequest(ModelState);
+		}
 
+
+		var roles = await _usersService.GetRolesAsync(user);
+
+		var responseView = await _authService.CreateTokenAsync(RemoteIpAddress, user, roles);
+
+		return Ok(responseView);
 	}
 
 	//POST api/auth/refreshtoken

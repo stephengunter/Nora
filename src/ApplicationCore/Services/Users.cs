@@ -9,6 +9,7 @@ namespace ApplicationCore.Services;
 public interface IUsersService
 {
 	Task<User?> FindByEmailAsync(string email);
+	User? FindUserByPhone(string phone);
 	Task<User> CreateAsync(string email, bool emailConfirmed);
 	Task<IList<string>> GetRolesAsync(User user);
 
@@ -47,7 +48,7 @@ public class UsersService : IUsersService
 	string BossRoleName = AppRoles.Boss.ToString();
 
 	public async Task<User?> FindByEmailAsync(string email) => await _userManager.FindByEmailAsync(email);
-
+ 	public User? FindUserByPhone(string phone) => _userManager.Users.FirstOrDefault(x => x.PhoneNumber == phone);
 	public async Task<User> CreateAsync(string email, bool emailConfirmed)
 	{
 		var user = new User
