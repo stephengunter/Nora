@@ -48,7 +48,8 @@ public static class ClaimsHelpers
 	public static OAuthProvider GetOAuthProvider(this ClaimsPrincipal cp)
 	{
 		if (cp == null) return OAuthProvider.Unknown;
-		string providerName = cp.Claims.First(c => c.Type == JwtClaimIdentifiers.Provider).Value;
+		var c = cp.Claims.FirstOrDefault(c => c.Type == JwtClaimIdentifiers.Provider);
+		string providerName = c is null ? "" :  c.Value;
 
 		OAuthProvider provider = OAuthProvider.Unknown;
 		if (Enum.TryParse(providerName, true, out provider))

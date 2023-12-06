@@ -7,6 +7,7 @@ using ApplicationCore.Services;
 using Microsoft.Extensions.Options;
 using ApplicationCore.Settings;
 using ApplicationCore.Authorization;
+using ApplicationCore.Helpers;
 
 namespace Web.Controllers;
 
@@ -35,18 +36,11 @@ public class AuthController : BaseController
 			return BadRequest(ModelState);
 		}
 
-		if (user.Email == _adminSettings.Email)
-		{
-			ModelState.AddModelError("auth", "登入失敗.");
-			return BadRequest(ModelState);
-		}
-
-
 		var roles = await _usersService.GetRolesAsync(user);
 
 		var responseView = await _authService.CreateTokenAsync(RemoteIpAddress, user, roles);
 
-		return Ok(responseView);
+		return Ok(responseView);;
 	}
 
 	//POST api/auth/refreshtoken
@@ -68,15 +62,12 @@ public class AuthController : BaseController
 		}
 		await ValidateRequestAsync(model, user);
 		if (!ModelState.IsValid) return BadRequest(ModelState);
-		var oauth = await _authService.FindOAuthByProviderAsync(user!, oauthProvider);
-		if(oauth is null)
-		{
-		   throw new Exception($"RefreshToken Failed. OAuth NotFound By Provider: {oauthProvider.ToString()}");
-		}
 
 		var roles = await _usersService.GetRolesAsync(user);
-		var responseView = await _authService.CreateTokenAsync(RemoteIpAddress, user, oauth!, roles);
-
+		var oauth = await _authService.FindOAuthByProviderAsync(user!, oauthProvider);
+		//if(oauth is null)  throw new Exception($"RefreshToken Failed. OAuth NotFound By Provider: {oauthProvider.ToString()}");
+		
+		var responseView = await _authService.CreateTokenAsync(RemoteIpAddress, user, roles, oauth);
 		return Ok(responseView);
 
 	}

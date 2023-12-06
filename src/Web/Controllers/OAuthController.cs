@@ -46,7 +46,7 @@ public class OAuthController : BaseController
 
 		var roles = await _usersService.GetRolesAsync(user);
 
-		var responseView = await _authService.CreateTokenAsync(RemoteIpAddress, user, oAuth, roles);
+		var responseView = await _authService.CreateTokenAsync(RemoteIpAddress, user, roles, oAuth);
 
 		return Ok(responseView);
 	}

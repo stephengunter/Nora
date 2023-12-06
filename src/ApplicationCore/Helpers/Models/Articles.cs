@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace ApplicationCore.Helpers;
 
-public static class ArticlesHelpers
+public static class ArticleHelpers
 {
 	public static ArticleViewModel MapViewModel(this Article article, IMapper mapper)
 	{
@@ -32,9 +32,12 @@ public static class ArticlesHelpers
 		return pageList;
 	}
 
-	public static Article MapEntity(this ArticleViewModel model, IMapper mapper, string currentUserId)
+	public static Article MapEntity(this ArticleViewModel model, IMapper mapper, string currentUserId, Article? entity = null)
 	{ 
-		var entity = mapper.Map<ArticleViewModel, Article>(model);
+		if (entity == null) entity = mapper.Map<ArticleViewModel, Article>(model);
+		else entity = mapper.Map<ArticleViewModel, Article>(model, entity);
+
+		entity.CheckActiveOrder(model);
 
 		if (model.Id == 0) entity.SetCreated(currentUserId);
 		else entity.SetUpdated(currentUserId);

@@ -20,38 +20,56 @@ namespace Web.Controllers.Tests;
 
 public class ATestsController : BaseTestController
 {
-      private readonly IArticlesService _articlesService;
-		private readonly IMapper _mapper;
+   private readonly AdminSettings _adminSettings;
+   private readonly AppSettings _appSettings;
+   private readonly IArticlesService _articlesService;
+   private readonly IMapper _mapper;
 
-		public ATestsController(IArticlesService articlesService, IMapper mapper)
+   public ATestsController(IOptions<AdminSettings> adminSettings, IOptions<AppSettings> appSettings,
+      IArticlesService articlesService, IMapper mapper)
+   {
+      _adminSettings = adminSettings.Value;
+      _appSettings = appSettings.Value;
+      _articlesService = articlesService;
+      _mapper = mapper;
+   }
+
+   [HttpGet("")]
+   public async Task<ActionResult>  Index(string key)
+   {
+      if (String.IsNullOrEmpty(key) || key != _adminSettings.Key) ModelState.AddModelError("key", "認證錯誤");
+      if (!ModelState.IsValid) return BadRequest(ModelState);
+
+      var articles = await _articlesService.FetchAllAsync();		
+		if (articles.HasItems())
 		{
-			_articlesService = articlesService;
-			_mapper = mapper;
+			articles = articles.GetOrdered().ToList();
 		}
+		return Ok(articles.MapViewModelList(_mapper));
+   }
+   [HttpPost("")]
+	public async Task<ActionResult> Store([FromBody] AdminRequest model)
+	{
+		if (model.Key != _adminSettings.Key) ModelState.AddModelError("key", "認證錯誤");
+      if (String.IsNullOrEmpty(model.Data)) ModelState.AddModelError("data", "資料錯誤");
+      if (!ModelState.IsValid) return BadRequest(ModelState);
 
-      [HttpGet("")]
-		public async Task<ActionResult> Index()
-		{
-         string userId = "5a76bf88-783b-42bf-9d8e-7468d456c4da";
-			var model = new ArticleViewModel
-         {
-            Title = "国安部：美国2009年就开始入侵华为总部服务器",
-            Content= "美国情报部门凭借其强大的网络攻击武器库，对包括中国在内的全球多国实施监控、窃密和网络攻击，可谓无所不用其极。特别是美国国家安全局，通过其下属的特定入侵行动办公室（TAO）以及先进的武器库，多次对我国进行体系化、平台化攻击，试图窃取我国重要数据资源",
-            UserId = userId
-         };
+		var article = new Article
+      {
+         Title = model.Data,
+         Content = "test Content",
+         UserId = _adminSettings.Id
+      };
 
-         var article = model.MapEntity(_mapper, userId);
-			article = await _articlesService.CreateAsync(article);
+		article = await _articlesService.CreateAsync(article);
 
-			return Ok(article.MapViewModel(_mapper));
-		}
-
+		return Ok(article.MapViewModel(_mapper));
+	}
 
    [HttpGet("version")]
    public ActionResult Version()
    {
-      return Ok();
-      //return Ok(_appSettings.ApiVersion);
+      return Ok(_appSettings.ApiVersion);
    }
 
 

@@ -5,12 +5,13 @@ using ApplicationCore.Specifications;
 namespace ApplicationCore.Services;
 public interface IArticlesService
 {
-	Task<IEnumerable<Article>> FetchAsync(int category);
+	Task<IEnumerable<Article>> FetchAsync(Category category);
 	Task<Article?> GetByIdAsync(int id);
 	Task<Article> CreateAsync(Article article);
 
 	Task<IEnumerable<Article>> FetchAllAsync();
 	Task UpdateAsync(Article article);
+	void Update(Article existingEntity, Article model);
 	Task RemoveAsync(Article article);
 
 
@@ -34,7 +35,7 @@ public class ArticlesService : IArticlesService
 	}
 
 	
-	public async Task<IEnumerable<Article>> FetchAsync(int category)
+	public async Task<IEnumerable<Article>> FetchAsync(Category category)
 		=> await _articleRepository.ListAsync(new ArticleSpecification(category));
 
 	public async Task<IEnumerable<Article>> FetchAllAsync()
@@ -46,7 +47,7 @@ public class ArticlesService : IArticlesService
 
 
 	public async Task UpdateAsync(Article article) => await _articleRepository.UpdateAsync(article);
-
+	public void Update(Article existingEntity, Article model) => _articleRepository.Update(existingEntity, model);
 	public async Task RemoveAsync(Article article)
 	{
 		

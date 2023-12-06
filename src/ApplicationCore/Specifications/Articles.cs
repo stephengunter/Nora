@@ -8,9 +8,9 @@ public class ArticleSpecification : Specification<Article>
 	{
 		Query.Where(item => !item.Removed);
 	}
-	public ArticleSpecification(int categoryId)
+	public ArticleSpecification(Category category)
 	{
-		Query.Where(item => !item.Removed && item.CategoryId == categoryId);
+		Query.Where(item => !item.Removed && item.CategoryId == category.Id);
 	}
 
 }
